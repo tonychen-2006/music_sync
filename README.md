@@ -157,7 +157,7 @@ The iOS app sends these commands to ESP32:
 | Command | Description | Example |
 |---------|-------------|---------|
 | `{time}` | Song position in milliseconds | `45230` |
-| `muri={uri};title={title};dur={ms}` | Song metadata | `muri=spotify:track:xyz;title=Song Name;dur=240000` |
+| `muri={uri};title={title};dur={ms}` | Song metadata | `muri=apple:track:1234567890;title=Song Name;dur=240000` |
 | `p1` / `p0` | Playback state (playing/paused) | `p1` |
 | `x` | Export XML timeline | `x` |
 | `c` | Clear event log | `c` |
@@ -175,7 +175,7 @@ The ESP32 sends back:
 ### Event Log (`/events.log` on ESP32)
 
 ```
-SONG uri="spotify:track:3n3Ppam7vgaVa1iaRUc9Lp" title="Mr. Brightside" durationMs=224000
+SONG uri="apple:track:1440933470" title="Mr. Brightside" durationMs=224000
 CLIP_START file="GOPR0042.MP4" songMs=5230
 CLIP_END file="GOPR0042.MP4" songMs=45100
 ```
@@ -185,7 +185,7 @@ CLIP_END file="GOPR0042.MP4" songMs=45100
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <Project name="Session1">
-  <Song uri="spotify:track:xyz" title="Mr. Brightside" durationMs="224000"/>
+  <Song uri="apple:track:1440933470" title="Mr. Brightside" durationMs="224000"/>
   <Clip file="GOPR0042.MP4" startSongMs="5230" endSongMs="45100"/>
   <Clip file="GOPR0043.MP4" startSongMs="67500" endSongMs="156000"/>
 </Project>
