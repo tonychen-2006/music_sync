@@ -1,32 +1,48 @@
-#include "song_clk_ble.h"
 #include <Arduino.h>
 #include <NimBLEDevice.h>
 
-// =======================
+#include "song_clk_ble.h"
+
 // Global song clock state
-// =======================
 static volatile uint32_t g_song_ms = 0;
 
+/**
+ * Set the current song playback time.
+ * @param ms Playback time in milliseconds
+ * @brief Updates the global song clock state, typically called from BLE write handler.
+ */
 void song_clock_set_time(uint32_t ms) {
   g_song_ms = ms;
 }
 
+/**
+ * Get the current song playback time.
+ * @return Current playback time in milliseconds
+ * @brief Thread-safe read of global song clock state.
+ */
 uint32_t song_clock_get_time() {
   return (uint32_t)g_song_ms;
 }
 
-// =======================
-// BLE UUIDs (keep stable)
-// =======================
+// BLE UUIDs
 static const char* SERVICE_UUID   = "b2b7c7b6-77f0-4df0-9b2d-9f7c8e3a3b21";
 static const char* TIME_CHAR_UUID = "c4b6bdb5-5b8b-4f62-8bbf-7f2d3f0b6d11";
 
-// =======================
-// BLE write handler
-// =======================
+/**
+ * BLE characteristic callbacks for song time updates.
+ * @brief Handles incoming BLE writes with robust parsing for both text and binary formats.
+ */
 class SongTimeCallbacks : public NimBLECharacteristicCallbacks {
 
 private:
+  /**
+   * Parse and process incoming song time data from BLE.
+   * @param ch BLE characteristic that received the write
+   * @brief Supports two formats:
+   *        1. Text mode: extracts digits from ASCII string
+   *        2. Binary mode: 4-byte little-endian uint32
+   *        Logs raw data in hex and ASCII for debugging.
+   */
   void handleWrite(NimBLECharacteristic* ch) {
     std::string v = ch->getValue();
 
@@ -50,13 +66,10 @@ private:
     }
     Serial.println("'");
 
-    // =======================
-    // Robust parsing strategy
-    // =======================
     uint32_t ms = 0;
     bool sawDigit = false;
 
-    // 1) Extract digits anywhere in payload (TEXT mode safe)
+    // Extract digits anywhere in payload (TEXT mode safe)
     for (size_t i = 0; i < v.size(); i++) {
       char c = v[i];
       if (c >= '0' && c <= '9') {
@@ -65,7 +78,7 @@ private:
       }
     }
 
-    // 2) Fallback: exactly 4 bytes → little-endian uint32
+    // Fallback: exactly 4 bytes → little-endian uint32
     if (!sawDigit && v.size() == 4) {
       const uint8_t* b = (const uint8_t*)v.data();
       ms = (uint32_t)b[0]
@@ -80,21 +93,33 @@ private:
   }
 
 public:
-  // NimBLE-Arduino signature (variant A)
+  /**
+   * NimBLE callback variant A (single parameter).
+   * @param ch BLE characteristic that received the write
+   * @brief Routes write events to handleWrite for processing.
+   */
   void onWrite(NimBLECharacteristic* ch) {
     handleWrite(ch);
   }
 
-  // NimBLE-Arduino signature (variant B)
+  /**
+   * NimBLE callback variant B (with connection info).
+   * @param ch BLE characteristic that received the write
+   * @param connInfo Connection information (unused)
+   * @brief Routes write events to handleWrite for processing.
+   */
   void onWrite(NimBLECharacteristic* ch, NimBLEConnInfo& connInfo) {
     (void)connInfo;
     handleWrite(ch);
   }
 };
 
-// =======================
-// BLE init
-// =======================
+/**
+ * Initialize BLE server for song clock synchronization.
+ * @brief Sets up BLE device, service, and characteristic for receiving song time updates.
+ *        Starts advertising as "SongSync-ESP32" with custom service UUID.
+ *        Configures write characteristic for song playback time in milliseconds.
+ */
 void song_clock_begin() {
   NimBLEDevice::init("SongSync-ESP32");
   NimBLEDevice::setPower(ESP_PWR_LVL_P9);

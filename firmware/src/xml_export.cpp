@@ -3,11 +3,23 @@
 
 static const char* XML_PATH = "/project.xml";
 
+/**
+ * Parse events.log and generate Final Cut Pro compatible XML timeline.
+ * @param eventsText Contents of events.log file
+ * @return true if XML file was successfully written, false if file open failed
+ * @brief Parses SONG and CLIP_START/CLIP_END events, generates /project.xml
+ *        with synchronized video clips mapped to song timeline.
+ *        Supports up to 32 clips per session.
+ */
 bool export_xml_from_events(const String& eventsText) {
   // Minimal parser: one SONG, and CLIP_START/CLIP_END pairs.
   String songUri = "", songTitle = "";
   uint32_t songDur = 0;
 
+  /**
+   * Video clip with timeline sync points.
+   * @brief Stores filename and start/end times relative to song playback.
+   */
   struct Clip { 
     String file; 
     uint32_t a, b;
@@ -80,6 +92,11 @@ bool export_xml_from_events(const String& eventsText) {
   return true;
 }
 
+/**
+ * Read the generated project XML file.
+ * @return Complete XML contents, or empty string if file doesn't exist
+ * @brief Reads /project.xml for display or BLE transmission to client.
+ */
 String read_project_xml() {
   File f = LittleFS.open(XML_PATH, "r");
   if (!f) return "";

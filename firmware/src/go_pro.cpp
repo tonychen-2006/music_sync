@@ -2,6 +2,13 @@
 
 #include "go_pro.h"
 
+/**
+ * Connect to GoPro WiFi network and wait for connection.
+ * @param ssid GoPro WiFi SSID (e.g., "GP26354747")
+ * @param pass GoPro WiFi password
+ * @return true if connected successfully, false if timeout (12 seconds)
+ * @brief Initiates WiFi connection to GoPro with 12-second timeout.
+ */
 bool goproBegin(const char* ssid, const char* pass) {
   WiFi.mode(WIFI_STA);
   WiFi.begin(ssid, pass);
@@ -13,6 +20,14 @@ bool goproBegin(const char* ssid, const char* pass) {
   return WiFi.status() == WL_CONNECTED;
 }
 
+/**
+ * Send HTTP GET request to GoPro and receive response body.
+ * @param path HTTP path (e.g., "/gp/gpControl/command/shutter?p=1")
+ * @param body Output buffer for response body
+ * @param cap Size of body buffer
+ * @return true if HTTP 200 received and body captured, false otherwise
+ * @brief Sends HTTP request to 10.5.5.9:80 (GoPro API), skips headers, captures body.
+ */
 static bool httpGETtoBuf(const char* path, char* body, size_t cap) {
   WiFiClient client;
   client.setTimeout(4000);
@@ -51,12 +66,29 @@ static bool httpGETtoBuf(const char* path, char* body, size_t cap) {
   return true;
 }
 
+/**
+ * Send shutter command to GoPro to start or stop recording.
+ * @param on true to start recording, false to stop recording
+ * @return true if HTTP request succeeded, false if connection/response failed
+ * @brief Sends /gp/gpControl/command/shutter API call to GoPro.
+ *        Logs debug info including HTTP response body.
+ */
 bool goproShutter(bool on) {
+  Serial.printf("[GoPro] Sending shutter command: %s\n", on ? "START" : "STOP");
+  
   char path[64];
   snprintf(path, sizeof(path),
            "/gp/gpControl/command/shutter?p=%d",
            on ? 1 : 0);
 
   char body[64];
-  return httpGETtoBuf(path, body, sizeof(body));
+  bool result = httpGETtoBuf(path, body, sizeof(body));
+  
+  if (result) {
+    Serial.printf("[GoPro] HTTP response: %s\n", body);
+  } else {
+    Serial.println("[GoPro] HTTP request failed");
+  }
+  
+  return result;
 }
